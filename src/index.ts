@@ -1,9 +1,8 @@
-import { Batch } from './providers/batch';
-import { requests } from './requests';
-import { JsonRpc } from './providers/jsonRpc';
+import * as providers from './providers';
 
-export default {
-  provider: JsonRpc,
-  batch: Batch,
-  requests,
-};
+export { requests } from './services/requests';
+
+export { Block, BlockWithTransactions, Transaction } from './interfaces/blockchain';
+export * from './utils';
+
+export { providers };

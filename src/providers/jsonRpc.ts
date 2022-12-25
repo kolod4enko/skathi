@@ -11,46 +11,53 @@ import {
   TransactionHash,
   TransactionIndex,
 } from '../interfaces/blockchain';
-import { requests } from '../requests';
-import { jsonRpc } from '../json-rpc';
+import { requests } from '../services/requests';
+import { JsonRpcCall } from "../services/jsonRpcCall";
+import { RequestObject } from "../interfaces/request";
+import { JSONRPCError, JSONRPCRequestResult } from "../interfaces/json-rpc";
 
 export class JsonRpc extends BaseProvider {
-  // Get the number of the last confirmed block
-  async getBlockNumber(): Promise<number> {
-    const request = requests.getBlockNumber();
+  private readonly client: JsonRpcCall;
 
-    return jsonRpc<number>(this.provider, request);
+  constructor(provider: string) {
+    super(provider);
+
+    this.client = new JsonRpcCall(provider);
   }
 
-  /*
+  async getNetVersion(): Promise<number | JSONRPCError> {
+    const request = requests.getNetVersion();
+
+    const data = await this.client.call<number>(this.inputFormatter(request));
+
+    return this.outputFormatter<number>(request, data);
+  }
+
+  /** Get the number of the last confirmed block */
+  async getBlockNumber(): Promise<number | JSONRPCError> {
+    const request = requests.getBlockNumber();
+
+    const data = await this.client.call<number>(this.inputFormatter(request));
+
+    return this.outputFormatter<number>(request, data);
+  }
+
+  /**
    * Get block data by block number, hash or tag.
    * You can also request the data of transactions performed in this block
    */
-  async getBlock(blockNumber: BlockNumber): Promise<Block>;
-  async getBlock(blockTag: BlockTag): Promise<Block>;
-  async getBlock(blockHash: BlockHash): Promise<Block>;
-  async getBlock(
-    blockNumber: BlockNumber,
-    returnTransactions: true,
-  ): Promise<BlockWithTransactions>;
-  async getBlock(
-    blockTag: BlockTag,
-    returnTransactions: true,
-  ): Promise<BlockWithTransactions>;
-  async getBlock(
-    blockHash: BlockHash,
-    returnTransactions: true,
-  ): Promise<BlockWithTransactions>;
-  async getBlock(
-    identifier: BlockIdentifier,
-    returnTransactions?: true,
-  ): Promise<Block | BlockWithTransactions> {
+  async getBlock(blockNumber: BlockNumber, returnTransactions?: boolean): Promise<Block>;
+  async getBlock(blockTag: BlockTag, returnTransactions?: boolean): Promise<Block>;
+  async getBlock(blockHash: BlockHash, returnTransactions?: boolean): Promise<Block>;
+  async getBlock(identifier: BlockIdentifier, returnTransactions?: true): Promise<Block | BlockWithTransactions | JSONRPCError> {
     const request = requests.getBlock(identifier, returnTransactions);
 
-    return jsonRpc<Block | BlockWithTransactions>(this.provider, request);
+    const data = await this.client.call<Block | BlockWithTransactions>(this.inputFormatter(request));
+
+    return this.outputFormatter<Block | BlockWithTransactions>(request, data);
   }
 
-  // Get transaction data by hash or block data in which it was performed
+  /** Get transaction data by hash or block data in which it was performed */
   async getTransaction(transactionHash: TransactionHash): Promise<Transaction>;
   async getTransaction(
     blockNumber: BlockNumber,
@@ -71,9 +78,33 @@ export class JsonRpc extends BaseProvider {
   async getTransaction(
     identifier: TransactionHash | BlockIdentifier,
     transactionIndex?: TransactionIndex,
-  ): Promise<Transaction> {
+  ): Promise<Transaction | JSONRPCError> {
     const request = requests.getTransaction(identifier, transactionIndex);
 
-    return jsonRpc<Transaction>(this.provider, request);
+    const data = await this.client.call<Transaction>(this.inputFormatter(request));
+
+    return this.outputFormatter<Transaction>(request, data);
+  }
+
+  private inputFormatter(request: RequestObject): RequestObject {
+    const { params, inputFormatter } = request;
+
+    if (params && inputFormatter) {
+      for (const key in params) {
+        params[key] = inputFormatter[key]
+          ? inputFormatter[key](params[key])
+          : params[key]
+      }
+    }
+
+    return request;
+  }
+
+  private outputFormatter<T>(requests: RequestObject, data: JSONRPCRequestResult<T>): T | JSONRPCError {
+    return data.error
+      ? data.error
+      : requests.outputFormatter
+        ? requests.outputFormatter(data.result)
+        : data.result;
   }
 }

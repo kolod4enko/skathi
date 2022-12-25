@@ -5,4 +5,5 @@ export enum Methods {
   GetTransactionByHash = 'eth_getTransactionByHash',
   GetTransactionByBlockNumber = 'eth_getTransactionByBlockNumberAndIndex',
   GetTransactionByBlockHash = 'eth_getTransactionByBlockHashAndIndex',
+  GetNetVersion = 'net_version',
 }

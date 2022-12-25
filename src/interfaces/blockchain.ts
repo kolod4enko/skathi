@@ -9,9 +9,9 @@ export type TransactionIndex = number;
 
 export interface BlockHeader {
   // The block number, null when its pending
-  number: number | null;
+  number: BlockNumber | null;
   // The block hash, null when its pending
-  hash: string | null;
+  hash: BlockHash | null;
   // Hash of the parent block.
   parentHash: string;
   //  Hash of the generated proof-of-work, null when its pending block
@@ -72,4 +72,56 @@ export interface Transaction {
   r: string;
   s: string;
   v: string;
+}
+
+export interface OriginBlockHeader {
+  number: string | null;
+  hash: string | null;
+  parentHash: string;
+  nonce: string | null;
+  sha3Uncles: string;
+  logsBloom: string;
+  transactionsRoot: string;
+  stateRoot: string;
+  receiptsRoot: string;
+  difficulty: string;
+  totalDifficulty: string;
+  extraData: string;
+  size: string;
+  gasLimit: string;
+  gasUsed: string;
+  timestamp: string;
+  uncles: string[];
+  miner: string;
+  mixHash: string;
+}
+
+export interface OriginBlock extends OriginBlockHeader {
+  transactions: string[];
+}
+
+export interface OriginBlockWithTransactions extends OriginBlockHeader {
+  transactions: OriginTransaction[];
+}
+
+export interface OriginTransaction {
+  hash: string;
+  nonce: string;
+  from: string;
+  to?: string;
+  value: string;
+  gas: string;
+  gasPrice: string;
+  input: string;
+  blockHash: string | null;
+  blockNumber: string | null;
+  transactionIndex?: string;
+  r: string;
+  s: string;
+  v: string;
+  index: string;
+  l1BlockNumber: string;
+  l1Timestamp: string;
+  queueOrigin: string;
+  rawTransaction: string;
 }
