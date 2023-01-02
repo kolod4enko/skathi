@@ -7,14 +7,15 @@ import {
   BlockTag,
   BlockTagFull,
   BlockWithTransactions,
+  Log,
   Transaction,
   TransactionHash,
-  TransactionIndex,
+  TransactionIndex, TransactionReceipt,
 } from '../interfaces/blockchain';
 import { requests } from '../services/requests';
 import { JsonRpcCall } from "../services/jsonRpcCall";
-import { RequestObject } from "../interfaces/request";
-import { JSONRPCError, JSONRPCRequestResult } from "../interfaces/json-rpc";
+import {LogFiltersBlockHash, LogFiltersBlockNumber, RequestObject} from "../interfaces/request";
+import { JSONRPCRequestResult } from "../interfaces/json-rpc";
 
 export class JsonRpc extends BaseProvider {
   private readonly client: JsonRpcCall;
@@ -25,86 +26,110 @@ export class JsonRpc extends BaseProvider {
     this.client = new JsonRpcCall(provider);
   }
 
-  async getNetVersion(): Promise<number | JSONRPCError> {
+  async getNetVersion(): Promise<number> {
     const request = requests.getNetVersion();
 
-    const data = await this.client.call<number>(this.inputFormatter(request));
+    return this.call<number>(request);
+  }
 
-    return this.outputFormatter<number>(request, data);
+  async getGasPrice(): Promise<number> {
+    const request = requests.getGasPrice()
+
+    return this.call<number>(request);
   }
 
   /** Get the number of the last confirmed block */
-  async getBlockNumber(): Promise<number | JSONRPCError> {
+  async getBlockNumber(): Promise<number> {
     const request = requests.getBlockNumber();
 
-    const data = await this.client.call<number>(this.inputFormatter(request));
-
-    return this.outputFormatter<number>(request, data);
+    return this.call<number>(request);
   }
 
   /**
    * Get block data by block number, hash or tag.
    * You can also request the data of transactions performed in this block
    */
-  async getBlock(blockNumber: BlockNumber, returnTransactions?: boolean): Promise<Block>;
-  async getBlock(blockTag: BlockTag, returnTransactions?: boolean): Promise<Block>;
-  async getBlock(blockHash: BlockHash, returnTransactions?: boolean): Promise<Block>;
-  async getBlock(identifier: BlockIdentifier, returnTransactions?: true): Promise<Block | BlockWithTransactions | JSONRPCError> {
+  async getBlock(blockNumber: BlockNumber, returnTransactions?: boolean): Promise<Block | BlockWithTransactions>;
+  async getBlock(blockTag: BlockTag, returnTransactions?: boolean): Promise<Block | BlockWithTransactions>;
+  async getBlock(blockHash: BlockHash, returnTransactions?: boolean): Promise<Block | BlockWithTransactions>;
+  async getBlock(identifier: BlockIdentifier, returnTransactions?: true): Promise<Block | BlockWithTransactions> {
     const request = requests.getBlock(identifier, returnTransactions);
 
-    const data = await this.client.call<Block | BlockWithTransactions>(this.inputFormatter(request));
+    return this.call<Block | BlockWithTransactions>(request);
+  }
 
-    return this.outputFormatter<Block | BlockWithTransactions>(request, data);
+  /** Get the number of transactions in a block by block number, hash or tag. */
+  async getBlockTransactionCount(blockNumber: BlockNumber): Promise<number>;
+  async getBlockTransactionCount(blockTag: BlockTag): Promise<number>;
+  async getBlockTransactionCount(blockHash: BlockHash): Promise<number>;
+  async getBlockTransactionCount(identifier: BlockIdentifier): Promise<number> {
+    const request = requests.getBlockTransactionCount(identifier);
+
+    return this.call<number>(request);
   }
 
   /** Get transaction data by hash or block data in which it was performed */
   async getTransaction(transactionHash: TransactionHash): Promise<Transaction>;
-  async getTransaction(
-    blockNumber: BlockNumber,
-    transactionIndex: TransactionIndex,
-  ): Promise<Transaction>;
-  async getTransaction(
-    blockTag: BlockTagFull,
-    transactionIndex: TransactionIndex,
-  ): Promise<Transaction>;
-  async getTransaction(
-    blockHash: BlockHash,
-    transactionIndex: TransactionIndex,
-  ): Promise<Transaction>;
-  async getTransaction(
-    identifier: TransactionHash | BlockIdentifier,
-    transactionIndex?: TransactionIndex,
-  ): Promise<Transaction>;
-  async getTransaction(
-    identifier: TransactionHash | BlockIdentifier,
-    transactionIndex?: TransactionIndex,
-  ): Promise<Transaction | JSONRPCError> {
+  async getTransaction(blockNumber: BlockNumber, transactionIndex: TransactionIndex): Promise<Transaction>;
+  async getTransaction(blockTag: BlockTagFull, transactionIndex: TransactionIndex): Promise<Transaction>;
+  async getTransaction(blockHash: BlockHash, transactionIndex: TransactionIndex): Promise<Transaction>;
+  async getTransaction(identifier: TransactionHash | BlockIdentifier, transactionIndex?: TransactionIndex): Promise<Transaction> {
     const request = requests.getTransaction(identifier, transactionIndex);
 
-    const data = await this.client.call<Transaction>(this.inputFormatter(request));
-
-    return this.outputFormatter<Transaction>(request, data);
+    return this.call<Transaction>(request);
   }
 
-  private inputFormatter(request: RequestObject): RequestObject {
-    const { params, inputFormatter } = request;
+  async getTransactionReceipt(transactionHash: TransactionHash): Promise<TransactionReceipt> {
+    const request = requests.getTransactionReceipt(transactionHash);
 
-    if (params && inputFormatter) {
-      for (const key in params) {
-        params[key] = inputFormatter[key]
-          ? inputFormatter[key](params[key])
-          : params[key]
-      }
+    return this.call<TransactionReceipt>(request);
+  }
+
+  async getUncle(blockNumber: BlockNumber, uncleIndex?: number): Promise<Block>;
+  async getUncle(blockTag: BlockTag, uncleIndex?: number): Promise<Block>;
+  async getUncle(blockHash: BlockHash, uncleIndex?: number): Promise<Block>;
+  async getUncle(identifier: BlockIdentifier, uncleIndex = 0): Promise<Block> {
+    const request = requests.getUncle(identifier, uncleIndex);
+
+    return this.call<Block>(request);
+  }
+
+  async getUncleCount(blockNumber: BlockNumber): Promise<number>;
+  async getUncleCount(blockTag: BlockTag): Promise<number>;
+  async getUncleCount(blockHash: BlockHash): Promise<number>;
+  async getUncleCount(identifier: BlockIdentifier): Promise<number> {
+    const request = requests.getUncleCount(identifier);
+
+    return this.call<number>(request);
+  }
+
+  async getLogs(filters: LogFiltersBlockNumber): Promise<Log[]>;
+  async getLogs(filters: LogFiltersBlockHash): Promise<Log[]>;
+  async getLogs(filters: LogFiltersBlockNumber | LogFiltersBlockHash): Promise<Log[]> {
+    const request = requests.getLogs(filters);
+
+    return this.call<Log[]>(request);
+  }
+
+  private async call<T>(request: RequestObject): Promise<T> {
+    const data = await this.client.call<T>(request);
+
+    return this.outputFormatter<T>(request, data);
+  }
+
+  private outputFormatter<T extends any>(requests: RequestObject, data: JSONRPCRequestResult<T>): T {
+    if (data.error) {
+      throw new Error(data.error.message);
     }
 
-    return request;
-  }
+    if (requests.formatter && data.result) {
+      if (Array.isArray(data.result)) {
+        return data.result.map((item) => requests.formatter(item)) as T;
+      }
 
-  private outputFormatter<T>(requests: RequestObject, data: JSONRPCRequestResult<T>): T | JSONRPCError {
-    return data.error
-      ? data.error
-      : requests.outputFormatter
-        ? requests.outputFormatter(data.result)
-        : data.result;
+      return requests.formatter(data.result);
+    }
+
+    return data.result;
   }
 }

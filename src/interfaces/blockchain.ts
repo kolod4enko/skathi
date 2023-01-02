@@ -1,7 +1,20 @@
+export enum EBlockTag {
+  earliest = 'earliest',
+  latest = 'latest',
+  pending = 'pending',
+}
+export enum EBlockTagFull {
+  earliest = 'earliest',
+  latest = 'latest',
+  pending = 'pending',
+  safe = 'safe',
+  finalized = 'finalized',
+}
+
 export type BlockNumber = number;
 export type BlockHash = string;
-export type BlockTag = 'earliest' | 'latest' | 'pending';
-export type BlockTagFull = BlockTag | 'safe' | 'finalized';
+export type BlockTag = keyof typeof EBlockTag;
+export type BlockTagFull = keyof typeof EBlockTagFull;
 export type BlockIdentifier = BlockNumber | BlockTagFull | BlockHash;
 
 export type TransactionHash = string;
@@ -46,7 +59,7 @@ export interface BlockHeader {
 
 export interface Block extends BlockHeader {
   // Array of transaction hashes
-  transactions: string[];
+  transactions: TransactionHash[];
 }
 
 export interface BlockWithTransactions extends BlockHeader {
@@ -55,23 +68,64 @@ export interface BlockWithTransactions extends BlockHeader {
 }
 
 export interface Transaction {
-  hash: string;
+  hash: TransactionHash;
+  // null when block is pending
+  transactionIndex?: TransactionIndex;
   nonce: number;
   from: string;
   to?: string;
-  value: number; // TODO заменить на BigInt
-  gas: number; // TODO заменить на BigInt
-  gasPrice: number; // TODO заменить на BigInt
+  value: number;
+  gas: number;
+  gasPrice: number;
   input: string;
   // null when block is pending
-  blockHash: string | null;
+  blockHash: BlockHash | null;
   // null when block is pending
-  blockNumber: number | null;
-  // null when block is pending
-  transactionIndex?: number;
+  blockNumber: BlockNumber | null;
   r: string;
   s: string;
   v: string;
+}
+
+export interface TransactionReceipt {
+  transactionHash: TransactionHash;
+  transactionIndex: TransactionIndex;
+  blockHash: BlockHash;
+  blockNumber: BlockNumber;
+  from: string;
+  to: string | null;
+  cumulativeGasUsed: number;
+  effectiveGasPrice: number;
+  gasUsed: number;
+  contractAddress: string | null;
+  logs: TransactionReceiptLogs;
+  logsBloom: string;
+  type: number;
+  root?: number;
+  status: number;
+}
+
+export interface TransactionReceiptLogs {
+  transactionHash: TransactionHash;
+  transactionIndex: TransactionIndex;
+  address: string;
+  blockHash: BlockHash;
+  blockNumber: BlockNumber;
+  data: string;
+  logIndex: number;
+  removed: boolean;
+  topics: string[];
+}
+
+export interface Log {
+  address: string;
+  topics: string[];
+  data: string;
+  logIndex: number;
+  blockNumber: number | null;
+  blockHash: string | null;
+  transactionHash: string;
+  transactionIndex: number;
 }
 
 export interface OriginBlockHeader {
@@ -124,4 +178,46 @@ export interface OriginTransaction {
   l1Timestamp: string;
   queueOrigin: string;
   rawTransaction: string;
+}
+
+export interface OriginTransactionReceipt {
+  transactionHash: string;
+  transactionIndex: string;
+  blockHash: string;
+  blockNumber: string;
+  from: string;
+  to: string | null;
+  cumulativeGasUsed: string;
+  effectiveGasPrice: string;
+  gasUsed: string;
+  contractAddress: string | null;
+  logs: OriginTransactionReceiptLogs;
+  logsBloom: string;
+  type: string;
+  root?: string;
+  status: string;
+}
+
+export interface OriginTransactionReceiptLogs {
+  transactionHash: string;
+  address: string;
+  blockHash: string;
+  blockNumber: string;
+  data: string;
+  logIndex: string;
+  removed: boolean;
+  topics: string[];
+  transactionIndex: string;
+}
+
+export interface OriginLog {
+  address: string;
+  topics: string[];
+  data: string;
+  logIndex: string;
+  blockNumber: string | null;
+  blockHash: string | null;
+  transactionHash: string;
+  transactionIndex: string;
+  removed: boolean;
 }
