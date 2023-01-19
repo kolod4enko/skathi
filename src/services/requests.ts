@@ -1,215 +1,191 @@
 import {
+  Address,
   BlockHash,
   BlockIdentifier,
   BlockNumber,
   BlockTag,
-  BlockTagFull,
+  FilterId,
+  FilterOptionsByBlockHash,
+  FilterOptionsByBlockNumber,
+  Formatter,
+  RequestObject,
   TransactionHash,
-  TransactionIndex
-} from "../interfaces/blockchain";
-import { Methods } from "../interfaces/method";
-import {getHex, hexToNumber, isBlockTag, isHex, isNumber, numberToHex} from "../utils";
-import {LogFiltersBlockHash, LogFiltersBlockNumber, RequestObject} from "../interfaces/request";
+  TransactionIndex,
+} from "../interfaces/request";
+import {Method} from "../interfaces/blockchain";
+import {Params} from "../interfaces/jsonRpc";
+
+import {Requests as AbstractRequests} from "../abstract";
 import * as formatter from "../formatters";
+import {hexToNumber} from "../formatters";
 
-const getNetVersion = (): RequestObject => ({
-  method: Methods.GetNetVersion,
-  formatter: hexToNumber
-})
+export class Requests implements AbstractRequests {
+  getGasPrice = (): RequestObject =>
+    this.getRequest(
+      Method.getGasPrice,
+      null,
+      null,
+      formatter.hexToNumber
+    );
 
-const getGasPrice = (): RequestObject => ({
-  method: Methods.GetGasPrice,
-  formatter: hexToNumber
-})
+  getBlockNumber = (): RequestObject =>
+    this.getRequest(
+      Method.getBlockNumber,
+      null,
+      null,
+      formatter.hexToNumber
+    );
 
-const getBlockNumber = (): RequestObject => ({
-  method: Methods.GetBlockNumber,
-  formatter: hexToNumber
-})
-
-function getBlock(blockNumber: BlockNumber, returnTransactions?: boolean): RequestObject;
-function getBlock(blockTag: BlockTag, returnTransactions?: boolean): RequestObject;
-function getBlock(blockHash: BlockHash, returnTransactions?: boolean): RequestObject;
-function getBlock(identifier: BlockIdentifier, returnTransactions?: boolean): RequestObject;
-function getBlock(identifier: BlockIdentifier, returnTransactions = false): RequestObject {
-  if (!isNumber(identifier) && !isBlockTag(identifier) && !isHex(identifier)) {
-    throw new Error('Invalid block hash or block tag');
+  getLogs(filterOptions: FilterOptionsByBlockNumber): RequestObject;
+  getLogs(filterOptions: FilterOptionsByBlockHash): RequestObject;
+  getLogs(filterOptions: FilterOptionsByBlockNumber | FilterOptionsByBlockHash): RequestObject {
+    return this.getRequest(
+      Method.getLogs,
+      [filterOptions],
+      [formatter.filterOptions],
+      formatter.log
+    );
   }
 
-  identifier = isNumber(identifier) ? numberToHex(identifier) : identifier;
-  returnTransactions = !!returnTransactions;
-
-  return {
-    method: isNumber(identifier) || isBlockTag(identifier)
-      ? Methods.GetBlockByNumber
-      : Methods.GetBlockByHash,
-    params: [identifier, returnTransactions],
-    formatter: returnTransactions
-      ? formatter.blockWithTransactions
-      : formatter.block
-  }
-}
-
-function getBlockTransactionCount(blockNumber: BlockNumber): RequestObject;
-function getBlockTransactionCount(blockTag: BlockTag): RequestObject;
-function getBlockTransactionCount(blockHash: BlockHash): RequestObject;
-function getBlockTransactionCount(identifier: BlockIdentifier): RequestObject;
-function getBlockTransactionCount(identifier: BlockIdentifier): RequestObject {
-  if (!isNumber(identifier) && !isBlockTag(identifier) && !isHex(identifier)) {
-    throw new Error('Invalid block hash or block tag');
+  getBlock(): RequestObject;
+  getBlock(blockNumber: BlockNumber): RequestObject;
+  getBlock(blockNumber: BlockNumber, returnTransactions: boolean): RequestObject;
+  getBlock(blockTag: BlockTag): RequestObject;
+  getBlock(blockTag: BlockTag, returnTransactions: boolean): RequestObject;
+  getBlock(blockHash: BlockHash): RequestObject;
+  getBlock(blockHash: BlockHash, returnTransactions: boolean): RequestObject;
+  getBlock(blockIdentifier?: BlockIdentifier, returnTransactions?: boolean): RequestObject;
+  getBlock(blockIdentifier: BlockIdentifier = 'latest', returnTransactions = false): RequestObject {
+    return this.getRequest(
+      (formatter.isNumber(blockIdentifier) || formatter.isBlockTag(blockIdentifier))
+        ? Method.getBlockByNumber
+        : Method.getBlockByHash,
+      [blockIdentifier, returnTransactions],
+      [formatter.getBlockIdentifier],
+      !returnTransactions ? formatter.block : formatter.blockWithTransactions
+    );
   }
 
-  identifier = isNumber(identifier) ? numberToHex(identifier) : identifier;
-
-  return {
-    method: isNumber(identifier) || isBlockTag(identifier)
-      ? Methods.GetBlockTransactionCountByNumber
-      : Methods.GetBlockTransactionCountByHash,
-    params: [identifier],
-    formatter: hexToNumber
+  getTransaction(transactionHash: TransactionHash): RequestObject;
+  getTransaction(blockNumber: BlockNumber, position?: TransactionIndex): RequestObject;
+  getTransaction(blockTag: BlockTag, position?: TransactionIndex): RequestObject;
+  getTransaction(blockHash: BlockHash, position?: TransactionIndex): RequestObject;
+  getTransaction(data: TransactionHash | BlockNumber | BlockTag | BlockHash, position?: TransactionIndex): RequestObject;
+  getTransaction(data: TransactionHash | BlockNumber | BlockTag | BlockHash, position?: TransactionIndex): RequestObject {
+    return this.getRequest(
+      position
+        ? (
+          (formatter.isNumber(data) || formatter.isBlockTag(data))
+            ? Method.getTransactionByBlockNumberAndIndex
+            : Method.getTransactionByBlockHashAndIndex
+        )
+        : Method.getTransactionByHash,
+      [data, position],
+      [position ? formatter.getBlockIdentifier : formatter.getHex, formatter.getHex],
+      formatter.transaction
+    );
   }
-}
 
-function getTransaction(transactionHash: TransactionHash): RequestObject;
-function getTransaction(blockNumber: BlockNumber, transactionIndex: TransactionIndex): RequestObject;
-function getTransaction(blockTag: BlockTagFull, transactionIndex: TransactionIndex): RequestObject;
-function getTransaction(blockHash: BlockHash, transactionIndex: TransactionIndex): RequestObject;
-function getTransaction(identifier: TransactionHash | BlockIdentifier, transactionIndex?: TransactionIndex): RequestObject;
-function getTransaction(identifier: TransactionHash | BlockIdentifier, transactionIndex?: TransactionIndex): RequestObject {
-  if (transactionIndex) {
-    if (!isNumber(identifier) && !isBlockTag(identifier) && !isHex(identifier)) {
-      throw new Error('Invalid block hash or block tag');
+  getTransactionReceipt = (transactionHash: TransactionHash): RequestObject =>
+    this.getRequest(
+      Method.getTransactionReceipt,
+      [transactionHash],
+      [formatter.getHex],
+      formatter.transactionReceipt
+    );
+
+  getBlockTransactionCount(): RequestObject;
+  getBlockTransactionCount(blockNumber: BlockNumber): RequestObject;
+  getBlockTransactionCount(blockTag: BlockTag): RequestObject;
+  getBlockTransactionCount(blockHash: BlockHash): RequestObject;
+  getBlockTransactionCount(blockIdentifier?: BlockIdentifier): RequestObject;
+  getBlockTransactionCount(blockIdentifier: BlockIdentifier = 'latest'): RequestObject {
+    return this.getRequest(
+      (formatter.isNumber(blockIdentifier) || formatter.isBlockTag(blockIdentifier))
+        ? Method.getBlockTransactionCountByNumber
+        : Method.getBlockTransactionCountByHash,
+      [blockIdentifier],
+      [formatter.getBlockIdentifier],
+      hexToNumber
+    );
+  }
+
+  getTransactionCount(address: Address): RequestObject;
+  getTransactionCount(address: Address, blockNumber: BlockNumber): RequestObject;
+  getTransactionCount(address: Address, blockTag: BlockTag): RequestObject;
+  getTransactionCount(address: Address, blockIdentifier?: BlockNumber | BlockTag): RequestObject;
+  getTransactionCount(address: Address, blockIdentifier: BlockNumber | BlockTag = 'latest'): RequestObject {
+    return this.getRequest(
+      Method.getTransactionCount,
+      [address, blockIdentifier],
+      [formatter.getHex, formatter.getBlockIdentifier],
+      hexToNumber
+    );
+  }
+
+  newFilter(filterOptions: FilterOptionsByBlockNumber): RequestObject;
+  newFilter(filterOptions: FilterOptionsByBlockHash): RequestObject;
+  newFilter(filterOptions: FilterOptionsByBlockNumber | FilterOptionsByBlockHash): RequestObject {
+    return this.getRequest(
+      Method.newFilter,
+      [filterOptions],
+      [formatter.filterOptions],
+      formatter.hexToNumber
+    );
+  }
+
+  newBlockFilter = (): RequestObject =>
+    this.getRequest(
+      Method.newBlockFilter,
+      null,
+      null,
+      formatter.hexToNumber
+    );
+
+  newPendingTransactionFilter = (): RequestObject =>
+    this.getRequest(
+      Method.newPendingTransactionFilter,
+      null,
+      null,
+      formatter.hexToNumber
+    );
+
+  uninstallFilter = (filterId: FilterId): RequestObject =>
+    this.getRequest(
+      Method.uninstallFilter,
+      [filterId],
+      [],
+      null
+    );
+
+  getFilterChanges = (filterId: FilterId): RequestObject =>
+    this.getRequest(
+      Method.getFilterChanges,
+      [filterId],
+      [],
+      null
+    );
+
+  getFilterLogs = (filterId: FilterId): RequestObject =>
+    this.getRequest(
+      Method.getFilterLogs,
+      [filterId],
+      [],
+      null
+    );
+
+  private getRequest(
+    method: Method,
+    params: Params = [],
+    inputFormatter: Formatter[] = [],
+    outputFormatter: Formatter
+  ): RequestObject {
+    if (params && params.length !== 0 && inputFormatter && inputFormatter.length !== 0) {
+      params = params.map((item, key) => (item && inputFormatter[key]) ? inputFormatter[key](item) : item)
     }
 
-    identifier = isNumber(identifier) ? numberToHex(identifier) : identifier;
-
-    return {
-      method: isNumber(identifier) || isBlockTag(identifier)
-        ? Methods.GetTransactionByBlockNumber
-        : Methods.GetTransactionByBlockHash,
-      params: [identifier, numberToHex(transactionIndex)],
-      formatter: formatter.transaction,
-    }
-  }
-
-  if (!isHex(identifier)) {
-    throw new Error('Invalid transaction hash');
-  }
-
-  return {
-    method: Methods.GetTransactionByHash,
-    params: [identifier],
-    formatter: formatter.transaction,
+    return { method, params, formatter: outputFormatter }
   }
 }
 
-const getTransactionReceipt = (transactionHash: TransactionHash): RequestObject => {
-  if (!isHex(transactionHash)) {
-    throw new Error('Invalid transaction hash');
-  }
-
-  return {
-    method: Methods.GetTransactionReceipt,
-    params: [transactionHash],
-    formatter: formatter.transactionReceipt,
-  }
-}
-
-function getUncle(blockNumber: BlockNumber, uncleIndex?: number): RequestObject;
-function getUncle(blockTag: BlockTag, uncleIndex?: number): RequestObject;
-function getUncle(blockHash: BlockHash, uncleIndex?: number): RequestObject;
-function getUncle(identifier: BlockIdentifier, uncleIndex?: number): RequestObject;
-function getUncle(identifier: BlockIdentifier, uncleIndex: number = 0): RequestObject {
-  if (!isNumber(identifier) && !isBlockTag(identifier) && !isHex(identifier)) {
-    throw new Error('Invalid block hash or block tag');
-  }
-
-  identifier = isNumber(identifier) ? numberToHex(identifier) : identifier;
-
-  return {
-    method: isNumber(identifier) || isBlockTag(identifier)
-      ? Methods.GetUncleByBlockNumberAndIndex
-      : Methods.GetUncleByBlockHashAndIndex,
-    params: [identifier, numberToHex(uncleIndex)],
-    formatter: formatter.block
-  }
-}
-
-function getUncleCount(blockNumber: BlockNumber): RequestObject;
-function getUncleCount(blockTag: BlockTag): RequestObject;
-function getUncleCount(blockHash: BlockHash): RequestObject;
-function getUncleCount(identifier: BlockIdentifier): RequestObject;
-function getUncleCount(identifier: BlockIdentifier): RequestObject {
-  if (!isNumber(identifier) && !isBlockTag(identifier) && !isHex(identifier)) {
-    throw new Error('Invalid block hash or block tag');
-  }
-
-  identifier = isNumber(identifier) ? numberToHex(identifier) : identifier;
-
-  return {
-    method: isNumber(identifier) || isBlockTag(identifier)
-      ? Methods.GetUncleCountByBlockNumber
-      : Methods.GetUncleCountByBlockHash,
-    params: [identifier],
-    formatter: hexToNumber
-  }
-}
-
-function getLogs(filters: LogFiltersBlockNumber): RequestObject;
-function getLogs(filters: LogFiltersBlockHash): RequestObject;
-function getLogs(filters: LogFiltersBlockNumber | LogFiltersBlockHash): RequestObject {
-  const params: {
-    fromBlock?: string,
-    toBlock?: string,
-    blockhash?: string,
-    address?: string | string[],
-    topics?: (string | string[])[],
-  } = {};
-
-  if ("fromBlock" in filters && filters.fromBlock) {
-    if (!isNumber(filters.fromBlock) && !isBlockTag(filters.fromBlock)) {
-      throw new Error('Invalid block tag');
-    }
-
-    params.fromBlock = isNumber(filters.fromBlock) ? numberToHex(filters.fromBlock) : <string>filters.fromBlock;
-  }
-
-  if ("toBlock" in filters && filters.toBlock) {
-    if (!isNumber(filters.fromBlock) && !isBlockTag(filters.fromBlock)) {
-      throw new Error('Invalid block tag');
-    }
-
-    params.toBlock = isNumber(filters.toBlock) ? numberToHex(filters.toBlock) : <string>filters.toBlock;
-  }
-
-  if ("blockHash" in filters && filters.blockHash) {
-    params.blockhash = getHex(filters.blockHash, 'Invalid block hash');
-  }
-
-  if (filters.address) {
-    params.address = getHex(filters.address, 'Invalid address');
-  }
-
-  if (filters.topics) {
-    params.topics = getHex(filters.topics, 'Invalid topics')
-  }
-
-  return {
-    method: Methods.GetLogs,
-    params: [params],
-    formatter: formatter.log,
-  }
-}
-
-export const requests = {
-  getNetVersion,
-  getGasPrice,
-  getBlockNumber,
-  getBlock,
-  getBlockTransactionCount,
-  getTransaction,
-  getTransactionReceipt,
-  getUncle,
-  getUncleCount,
-  getLogs
-}
+export const requests = new Requests();

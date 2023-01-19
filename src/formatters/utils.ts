@@ -1,9 +1,19 @@
-import { EBlockTag, EBlockTagFull } from "./interfaces/blockchain";
-
 export const assertNotNull = (value: any, msg?: string): void => {
   if (!value) {
     throw new Error(msg || 'Value cannot be empty');
   }
+}
+
+export const getAddress = (value: any): string => {
+  return getHex(value);
+}
+
+export const getTopics = (value: any): (string | string[])[] => {
+  if (!Array.isArray(value)) {
+    throw new Error('Invalid value');
+  }
+
+  return getHex(value);
 }
 
 export const assertNotType = (value: any, type: string, msg?: string): void => {
@@ -20,7 +30,7 @@ export const numberToHex = (value: any): string => {
 export const isHex = (value: any): boolean =>
   (typeof value === 'string' && !!value.match(/^0x[0-9A-Fa-f]*$/))
 
-export const getHex = <T extends any>(value: any, msg?: string): T => {
+export const getHex = <T extends any>(value: any): T => {
   if (Array.isArray(value)) {
     for (const item of value) {
       if (Array.isArray(item)) {
@@ -57,27 +67,14 @@ export const toLowerCase = (value: string): string => value.toLowerCase()
 export const toHexString = (value: string): string => {
   if (!value)
 
-  if (typeof value !== 'string') {
-    throw new Error('Hex cannot be empty');
-  }
+    if (typeof value !== 'string') {
+      throw new Error('Hex cannot be empty');
+    }
 
   return ''
 }
 
 export const isNumber = (data: any): boolean => typeof data === 'number';
-export const isBlockTag = (data: any, full = false): boolean => {
-  switch (data) {
-    case EBlockTag.latest:
-    case EBlockTag.pending:
-    case EBlockTag.earliest:
-      return true;
-    case EBlockTagFull.safe:
-    case EBlockTagFull.finalized:
-      return full;
-    default:
-      return false;
-  }
-}
 
 // export const isAddress = (address: string): boolean => {
 //   if (typeof address !== 'string') {

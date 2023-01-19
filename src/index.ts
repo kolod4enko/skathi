@@ -1,4 +1,4 @@
-import * as providers from './providers';
+import * as providers from './provider';
 
 export { Block, BlockWithTransactions, Transaction } from './interfaces/blockchain';
 

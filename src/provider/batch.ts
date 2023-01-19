@@ -1,8 +1,9 @@
-import { RequestObject } from '../interfaces/request';
-import { jsonRpcBatchCall } from '../services/jsonRpcCall';
-import { BaseProvider } from './base';
-import { JSONRPCError, JSONRPCRequestResult } from "../interfaces/json-rpc";
+import { RequestObject } from "../interfaces/request";
+
 import * as req from "../services/requests";
+import { jsonRpcBatchCall } from "../services/jsonRpc";
+
+import { BaseProvider } from './base';
 
 export class Batch extends BaseProvider {
   requests = req.requests;
@@ -18,34 +19,29 @@ export class Batch extends BaseProvider {
     this._requests = [];
   }
 
+  /** Executes the requests in the pool */
   async execute(): Promise<any[]>;
   async execute(requests: RequestObject[]): Promise<any[]>;
   async execute(requests?: RequestObject[]): Promise<any[]> {
+    // check requests length
     if (!requests.length && !this._requests?.length) {
-      throw new Error('Execution is impossible without requests');
+      throw new Error('Execute requires at least one request, none were provided');
     }
 
+    // combine requests
     if (this._requests?.length) {
       requests = [...this._requests, ...requests]
     }
 
+    // check max requests
     if (requests.length > 100) {
-      throw new Error();
+      throw new Error(`Maximum 100 requests can be passed to the execute method, but ${requests.length} were passed`);
     }
 
+    // call batch request
     const data = await jsonRpcBatchCall(this.provider, requests);
 
-    return data.map((item, index) => item.error
-      ? item.error.message
-      : this.outputFormatter(requests[index], item)
-    );
-  }
-
-  private outputFormatter(requests: RequestObject, data: JSONRPCRequestResult): any | JSONRPCError {
-    return data.error
-      ? data.error
-      : requests.formatter
-        ? requests.formatter(data.result)
-        : data.result;
+    return data.map((item, index) =>
+      item[index].formatter ? item[index].formatter(item) : item);
   }
 }
