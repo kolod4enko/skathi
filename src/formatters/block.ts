@@ -1,7 +1,7 @@
 import * as origin from '../interfaces/blockchain';
 import * as request from '../interfaces/request'
 
-import {assertNotNull, getHex, hexToNumber, isNumber} from "./utils";
+import {assertNotNull, getHex, hexToNumber, isNumber, numberToHex} from "./utils";
 import { transaction } from "./transaction";
 
 export const isBlockTag = (data: any, full = false): boolean => {
@@ -18,11 +18,11 @@ export const isBlockTag = (data: any, full = false): boolean => {
   }
 }
 
-export const getBlockIdentifier = <T extends request.BlockIdentifier>(value: any): T => {
+export const getBlockIdentifier = (value: any): string => {
   assertNotNull(value);
 
   if (isNumber(value)) {
-    return value;
+    return numberToHex(value);
   }
 
   if (isBlockTag(value, true)) {

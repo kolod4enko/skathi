@@ -141,6 +141,16 @@ export class JsonRpc extends BaseProvider implements Methods {
   private async call<T>({ method, params, formatter }: RequestObject): Promise<T> {
     const data = await this.client.call<number>({ method, params });
 
-    return formatter ? formatter(data) : data;
+    if ('error' in data && data.error) {
+      throw new Error(`Error: ${data.error.message}`);
+    }
+
+    const element = 'result' in data ? data.result : null;
+
+    return element
+      ? formatter
+        ? formatter(element)
+        : element
+      : null;
   }
 }

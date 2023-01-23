@@ -41,7 +41,18 @@ export class Batch extends BaseProvider {
     // call batch request
     const data = await jsonRpcBatchCall(this.provider, requests);
 
-    return data.map((item, index) =>
-      item[index].formatter ? item[index].formatter(item) : item);
+    return data.map((item, index) => {
+      if ('error' in item && item.error) {
+        throw new Error(`Error: ${item.error.message}`);
+      }
+
+      const element = 'result' in item ? item.result : null;
+
+      return element
+        ? requests[index].formatter
+          ? requests[index].formatter(element)
+          : element
+        : null;
+    })
   }
 }

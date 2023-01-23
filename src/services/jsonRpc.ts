@@ -24,13 +24,7 @@ export class JsonRpc {
       throw new Error(`Error ${response.status}: ${response.statusText}`);
     }
 
-    const data = await response.json();
-
-    if (data.error) {
-      throw new Error(`Error: ${data.error.message}`);
-    }
-
-    return data.result;
+    return response.json();
   }
 
   private toRequestObject(params: JsonRpcCallParams | JsonRpcCallParams[]): JsonRpcRequestObject | JsonRpcRequestObject[] {

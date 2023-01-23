@@ -1,0 +1,17 @@
+# Dependency directories
+node_modules/
+
+# Built js libs
+/*/lib
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+
+# IDEs
+.idea
+.vscode
+
+tsconfig.tsbuildinfo

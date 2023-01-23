@@ -1,0 +1,41 @@
+import { Address, BlockHash, BlockIdentifier, BlockNumber, BlockTag, FilterId, FilterOptionsByBlockHash, FilterOptionsByBlockNumber, RequestObject, TransactionHash, TransactionIndex } from "../interfaces/request";
+import { Requests as AbstractRequests } from "../abstract";
+export declare class Requests implements AbstractRequests {
+    getGasPrice: () => RequestObject;
+    getBlockNumber: () => RequestObject;
+    getLogs(filterOptions: FilterOptionsByBlockNumber): RequestObject;
+    getLogs(filterOptions: FilterOptionsByBlockHash): RequestObject;
+    getBlock(): RequestObject;
+    getBlock(blockNumber: BlockNumber): RequestObject;
+    getBlock(blockNumber: BlockNumber, returnTransactions: boolean): RequestObject;
+    getBlock(blockTag: BlockTag): RequestObject;
+    getBlock(blockTag: BlockTag, returnTransactions: boolean): RequestObject;
+    getBlock(blockHash: BlockHash): RequestObject;
+    getBlock(blockHash: BlockHash, returnTransactions: boolean): RequestObject;
+    getBlock(blockIdentifier?: BlockIdentifier, returnTransactions?: boolean): RequestObject;
+    getTransaction(transactionHash: TransactionHash): RequestObject;
+    getTransaction(blockNumber: BlockNumber, position?: TransactionIndex): RequestObject;
+    getTransaction(blockTag: BlockTag, position?: TransactionIndex): RequestObject;
+    getTransaction(blockHash: BlockHash, position?: TransactionIndex): RequestObject;
+    getTransaction(data: TransactionHash | BlockNumber | BlockTag | BlockHash, position?: TransactionIndex): RequestObject;
+    getTransactionReceipt: (transactionHash: TransactionHash) => RequestObject;
+    getBlockTransactionCount(): RequestObject;
+    getBlockTransactionCount(blockNumber: BlockNumber): RequestObject;
+    getBlockTransactionCount(blockTag: BlockTag): RequestObject;
+    getBlockTransactionCount(blockHash: BlockHash): RequestObject;
+    getBlockTransactionCount(blockIdentifier?: BlockIdentifier): RequestObject;
+    getTransactionCount(address: Address): RequestObject;
+    getTransactionCount(address: Address, blockNumber: BlockNumber): RequestObject;
+    getTransactionCount(address: Address, blockTag: BlockTag): RequestObject;
+    getTransactionCount(address: Address, blockIdentifier?: BlockNumber | BlockTag): RequestObject;
+    newFilter(filterOptions: FilterOptionsByBlockNumber): RequestObject;
+    newFilter(filterOptions: FilterOptionsByBlockHash): RequestObject;
+    newBlockFilter: () => RequestObject;
+    newPendingTransactionFilter: () => RequestObject;
+    uninstallFilter: (filterId: FilterId) => RequestObject;
+    getFilterChanges: (filterId: FilterId) => RequestObject;
+    getFilterLogs: (filterId: FilterId) => RequestObject;
+    private getRequest;
+}
+export declare const requests: Requests;
+//# sourceMappingURL=requests.d.ts.map
